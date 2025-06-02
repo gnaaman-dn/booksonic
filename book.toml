@@ -1,0 +1,9 @@
+[book]
+authors = ["Gilad Naaman"]
+language = "en"
+src = "src"
+title = "Sonic Book (Gilad's Version)"
+
+[preprocessor.toc]
+command = "mdbook-toc"
+renderer = ["html"]
