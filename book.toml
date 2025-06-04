@@ -2,7 +2,7 @@
 authors = ["Gilad Naaman"]
 language = "en"
 src = "src"
-title = "Sonic Book (Gilad's Version)"
+title = "Gilad's Sonic Research Book"
 
 [preprocessor.toc]
 command = "mdbook-toc"

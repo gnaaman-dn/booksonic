@@ -1,7 +1,8 @@
 # Deploying VS on virsh
 
-Once you've finished building `target/sonic-vs.img.gz`, you can start the deployment process.
-`target/sonic-vs.img.gz` is a compressed QEMU QCOW2 file. (virtual disk image)
+SONiC-VS (Virtual Switch) can be built into a KVM-image and deployed as a VM.
+
+The name of the Make target is `target/sonic-vs.img.gz`, which is a compressed QEMU QCOW2 file. (virtual disk image)
 
 The file is compressed for distribution, but it has to be decompressed before usage:
 ```bash
@@ -56,13 +57,10 @@ $ virsh net-dhcp-leases  --network default
 You can connect to them either via SSH, or using `virsh console`.
 By default, the credentials are `admin`/`YourPaSsWoRd`.
 
-# Interface assignment
-According to [this article](https://medium.com/sonic-nos/creating-a-sonic-nos-virtual-lab-5a9ec431e0d0), sonic will always take `eth0` to be the management port,
-and subsequent ports are mapped to SONiC logical ports.
+# Link assignment
+Also refer to [Link Assignment](link_assignment.md)
 
-So e.g. `eth1` will be mapped to SoNIC `Ethernet0`, `eth2` to SoNIC `Ethernet4` and so on.
-
-In order to add more ports, you can edit the machine definition file with `virsh edit sonic-0` and add more interfaces, e.g.:
+In order to add more front-panel ports, you can edit the machine definition file with `virsh edit sonic-0` and add more interfaces, e.g.:
 ```xml
     <interface type='bridge'>
       <source bridge='br_2_to_1'/>
@@ -107,3 +105,56 @@ virt-install -n sonic-1 --ram=8192 --vcpus=4 --disk=/var/lib/libvirt/images/soni
 
 # Memory Backing
 If you're on a capable machine with hugepages enabled, you can (and should) add `--memorybacking=hugepages=yes` to use them.
+
+# Working with `isolcpus`
+`isolcpus` is a kernel command-line argument (i.e. given to it by the bootloader) telling it to avoid scheduling
+a set of cores.
+These cores a excluded from almost all host scheduling, which makes them optimal for uninterrupted VM execution.
+
+## Checking if you have `isolcpus` enabled
+
+The command-line arguments given to the kernel are available in `/proc/cmdline`:
+```bash
+$ cat /proc/cmdline
+BOOT_IMAGE=/vmlinuz-5.15.0-141-generic root=/dev/mapper/ubuntu--vg-ubuntu--lv ro console=tty0 console=ttyS0,115200n8 hugepagesz=1G default_hugepagesz=1G hugepages=300 iommu=pt intel_iommu=on isolcpus=35-43,79-87 nohz_full=35-43,79-87 rcu_nocbs=35-43,79-87 nosoftlockup intel_idle.max_cstate=0 intel_pstate=disable audit=0
+```
+
+Here you can see `isolcpus=35-43,79-87`, which means that in total 18 CPUs are excluded from scheduling.
+(The ranges are inclusive)
+
+## Enabling/Disabling `isolcpus`
+
+If you want to disable core isolation, edit `/etc/default/grub` and find where the `GRUB_CMDLINE_LINUX` is set.
+Remove all references to `isolcpus=...`, `nohz_full=...`, and `rcu_nocbs=...`.
+
+If you want to enable isolation, choose some range of cores and set all three-variables to the same range.
+The exact semantics of these variables can be found in the [kernel docs](https://docs.kernel.org/admin-guide/kernel-parameters.html).
+
+If your CPU has 2 NUMAs and hyperthreading, it is recommended to isolate both logical cores of the same physical core.
+In the example above, we isolate the top 9 physical-cores of NUMA-1 by specifying 2 ranges of logical-cores.
+This is derived from this snippet from `lscpu`:
+```bash
+NUMA:
+  NUMA node(s):           2
+  NUMA node0 CPU(s):      0-21,44-65
+  NUMA node1 CPU(s):      22-43,66-87            <<<<<<
+```
+
+## Using isolated CPUs
+
+If you have some set of CPUs that are isolated and you want to run the VM on them, you'll have to explicitly
+tell `libvirt` that you want to use them.
+
+Let's say you've isoalted the ranges `35-43,79-87`:
+```bash
+$ cat /proc/cmdline
+BOOT_IMAGE=/vmlinuz-5.15.0-141-generic root=/dev/mapper/ubuntu--vg-ubuntu--lv ro console=tty0 console=ttyS0,115200n8 hugepagesz=1G default_hugepagesz=1G hugepages=300 iommu=pt intel_iommu=on isolcpus=35-43,79-87 nohz_full=35-43,79-87 rcu_nocbs=35-43,79-87 nosoftlockup intel_idle.max_cstate=0 intel_pstate=disable audit=0
+```
+
+You can add the following argument to make libvirt pin the vCPUs to the isolated (p)CPUs.
+```bash
+--cputune vcpupin0.vcpu=0,vcpupin0.cpuset=35,vcpupin1.vcpu=1,vcpupin1.cpuset=36,vcpupin2.vcpu=2,vcpupin2.cpuset=37,vcpupin3.vcpu=3,vcpupin3.cpuset=38
+```
+
+Unfortunately, using `--vcpus=4,cpuset=35-38` doesn't seem to be enough, as fully utilizing the cores require the host-kernel scheduler,
+which is impossible due to the isolation.

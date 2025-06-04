@@ -23,5 +23,4 @@
 
  - Config engine might be using Python 2?
 
-(Remove spaces)
-! [Excalidraw example] (kroki-excalidraw:../assets/foo.excalidraw)
+<!-- ![Excalidraw example](kroki-excalidraw:../assets/foo.excalidraw) -->
