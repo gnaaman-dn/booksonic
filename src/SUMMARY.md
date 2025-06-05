@@ -16,3 +16,7 @@
     - [Link assignment](./virtual_switch/link_assignment.md)
 - [CLI Examples](./cli_examples.md)
 - [Insights](./insights.md)
+
+# General DevOps Voodoo
+
+- [Local Docker Registry](./local_docker_registry.md)

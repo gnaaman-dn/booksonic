@@ -18,6 +18,8 @@ qemu-system-x86_64 -name sonic-simulator_1 -m 8192M -smp cpus=4 -drive file=targ
 Note that the VM *will* change the data on the virtual disk, which means that multiple machines will have to have different files.
 If you're planning to run multiple machines, make a copy.
 
+It's also possible to create some overlay-solution using `qemu-img`, which requires further research.
+
 ## Running with virsh
 `virsh`/`libvirt` is virtual machine manager.
 

@@ -29,6 +29,14 @@ interconnected using a single link.
 As-is, the file is not runnable due to Docker-registry permissions;
 but we can create our own file referring to the Docker-image we've built locally and loaded.
 
+Note that `containerlab` generally work with Docker-containers, but there _is_ a solution to work
+a SONiC-VM.
+
+### Using SONiC-VS (Container)
+
+> [!NOTE]
+> Adapted from [`containerlab` SONiC Container](https://containerlab.dev/manual/kinds/sonic-vs/)
+
 Let's create our own `.clab.yml` file with a simple spine/leaf topology:
 ```yml
 # sonic-spine-leaf.clab.yml
@@ -77,6 +85,71 @@ $ containerlab deploy -t sonic-spine-leaf.clab.yml
 │                                        │ docker-sonic-vs:latest │         │ 3fff:172:20:20::3 │
 ╰────────────────────────────────────────┴────────────────────────┴─────────┴───────────────────╯
 ```
+
+### Using SONiC-VS (VM)
+
+> [!NOTE]
+> Adapted from - [`containerlab` SONiC-VM](https://containerlab.dev/manual/kinds/sonic-vm/)
+
+`containerlab` only directly works with container, which means that all we need in order to work with 
+a VM is a container-image that starts it.
+
+Fortunately, there's a project called [`vrnetlab`](https://github.com/hellt/vrnetlab/tree/master/sonic) which fills this gap.
+Follow the instructions in the linked page to build a Docker-image with a bundled VM image, and deploy a modified topology:
+
+```yml
+# vm-sonic-spine-leaf.clab.yml
+name: sonic-spine-with-2-leaves
+
+topology:
+  nodes:
+    spine-0:
+      kind: sonic-vm
+      image: vrnetlab/sonic_sonic-vs:drivenets
+    leaf-0:
+      kind: sonic-vm
+      image: vrnetlab/sonic_sonic-vs:drivenets
+    leaf-1:
+      kind: sonic-vm
+      image: vrnetlab/sonic_sonic-vs:drivenets
+
+  links:
+    - endpoints: ["spine-0:eth1", "leaf-0:eth1"]
+    - endpoints: ["spine-0:eth2", "leaf-1:eth1"]
+```
+
+This approach requires rebuilding the vrnetlab image every time we rebuild the SONiC image.
+To work around it, we've [forked the repository](https://github.com/gnaaman-dn/vrnetlab/tree/master/sonic-dev) to create an image with a volume-able SONiC image.
+
+This generic image is available at the `dn19` registry, which I assume is going to be named that forever. (/s)
+In order to use it, create a topology with a bind-mount to a directory containing the `.img` file.
+
+```yml
+name: sonic-spine-with-2-leaves
+
+topology:
+  nodes:
+    spine-0:
+      kind: sonic-vm
+      image: dn19.dev.drivenets.net:5000/sonic_vs:generic
+      binds:
+        - .:/img/:ro
+    leaf-0:
+      kind: sonic-vm
+      image: dn19.dev.drivenets.net:5000/sonic_vs:generic
+      binds:
+        - .:/img/:ro
+    leaf-1:
+      kind: sonic-vm
+      image: dn19.dev.drivenets.net:5000/sonic_vs:generic
+      binds:
+        - .:/img/:ro
+
+  links:
+    - endpoints: ["spine-0:eth1", "leaf-0:eth1"]
+    - endpoints: ["spine-0:eth2", "leaf-1:eth1"]
+```
+
 
 ## Graphing a topology
 `containerlab` comes with a useful subcommand called `graph`.

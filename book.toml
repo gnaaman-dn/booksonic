@@ -4,6 +4,8 @@ language = "en"
 src = "src"
 title = "Gilad's Sonic Research Book"
 
+[preprocessor.alerts]
+
 [preprocessor.toc]
 command = "mdbook-toc"
 renderer = ["html"]

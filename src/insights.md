@@ -22,5 +22,7 @@
 ## Misc.
 
  - Config engine might be using Python 2?
+ - SONiC VS default config info `device/virtual/x86_64-kvm_x86_64-r0/README.md`
+    - It loads something default and annoying, should figure out best-way to turn it off.
 
 <!-- ![Excalidraw example](kroki-excalidraw:../assets/foo.excalidraw) -->
