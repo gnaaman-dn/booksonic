@@ -16,6 +16,8 @@
     - [Link assignment](./virtual_switch/link_assignment.md)
 - [CLI Examples](./cli_examples.md)
 - [Insights](./insights.md)
+- [IXIA](./ixia.md)
+- [Configuration](./configuration.md)
 
 # General DevOps Voodoo
 

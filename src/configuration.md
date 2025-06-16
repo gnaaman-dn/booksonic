@@ -1,23 +1,31 @@
-# Insights
+# Configuration
 
-## Debug
+## Configuring a Management-VRF
 
- - Host file-system does not have `strace`. (Installed in Docker-images when building in Debug mode)
+By default, the management interface (`eth0`) is in the same VRF as all other inband interfaces.
+This fucks-up routing because the management interface usually has a default-route.
 
-## Health-Check
+It is possible to configure a management-VRF to isolate it.
 
- - Looks like there's no orchastrator, all HA is local to a container.
- - `show system-health ...` seems to perform an on-demand check on containers and processes
- - `show system-health ...` doesn't seem to be implemented on VS. Missing files:
-    - `/usr/share/sonic/device/x86_64-kvm_x86_64-r0/system_health_monitoring_config.json`
-    - `/etc/sonic/vs_chassis_metadata.json`
-    - Mayber others
+From CLI:
+```shell
+sudo config vrf add mgmt
+# -or-
+sudo config vrf add management
+```
+Both names are keywords, and do not affect the name of the actual VRF (it's going to be `mgmt` in Linux either way).
 
-## ONIE Image build.
-
- - Starts with `build_debian.sh`
- - Uses `sonic_debian_extension.sh` which is generated from `files/build_templates/sonic_debian_extension.j2`
-    - Seems to perform installations on host image.
+In the config-file it looks like this:
+```json
+{
+    "MGMT_VRF_CONFIG": {
+        "vrf_global": {
+            "mgmtVrfEnabled": "true"
+        }
+    }
+}
+```
+Note that applying this using a containerlab `startup-config` doesn't work, probably due to a race.
 
 ## Switching
 
@@ -78,11 +86,3 @@ Resources:
  - [Don’t use split-mode, use frr-mgmt-framework](https://medium.com/sonic-nos/sonic-dont-use-split-mode-use-frr-mgmt-framework-a67ad76ec1a6)
  - [How FRR is configured in SONiC](https://www.sonicnos.net/content/guides/config-frr)
  - [EVPN Route Reflector with SONiC using frr-mgmt-framework](https://medium.com/sonic-nos/evpn-route-reflector-with-sonic-using-frr-mgmt-framework-db6d12b85ce7)
-
-## Misc.
-
- - Config engine might be using Python 2?
- - SONiC VS default config info `device/virtual/x86_64-kvm_x86_64-r0/README.md`
-    - It loads something default and annoying, should figure out best-way to turn it off.
-
-<!-- ![Excalidraw example](kroki-excalidraw:../assets/foo.excalidraw) -->

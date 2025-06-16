@@ -150,6 +150,41 @@ topology:
     - endpoints: ["spine-0:eth2", "leaf-1:eth1"]
 ```
 
+#### Accessing machines
+
+Accessing a deployed machine can be done either via SSH or console.
+
+The hostname is the container name, and both username and password are `admin`:
+```bash
+sshpass -p admin ssh admin@clab-sonic-leaf-1
+```
+
+If console access is needed, it is possible to obtain it with telnet:
+```bash
+telnet clab-sonic-leaf-1 5000
+```
+
+#### Startup-config
+It is possible to provide a JSON file containing (additive) sonic-configuration using the standard containerlab
+`startup-config` key, for example:
+
+```yml
+name: sonic
+
+topology:
+  nodes:
+    spine-0:
+      kind: sonic-vm
+      image: dn19.dev.drivenets.net:5000/sonic_vs:generic
+      binds:
+        - .:/img/:ro
+      startup-config: ./startup-configs/spine-0.new.json
+```
+
+During VM setup, the launcher script copies this file into the VM and appends it to the existing configuration.
+This means that the actual final configuration is affected by the default config, and any example preset used.
+
+Also note that some configuration is only applied properly on startup, so some container restarts may be required.
 
 ## Graphing a topology
 `containerlab` comes with a useful subcommand called `graph`.
